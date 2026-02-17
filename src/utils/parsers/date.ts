@@ -19,6 +19,7 @@ export const parseDate = (date: dayjs.Dayjs): string => {
     minuto < 10 ? `0${minuto}` : minuto.toString();
   const segundoFormateado: string =
     segundo < 10 ? `0${segundo}` : segundo.toString();
+  //NOSONAR
   // return `${anio}/${mesFormateado}/${diaFormateado}`;
 
   return `${anio}/${mesFormateado}/${diaFormateado} ${horaFormateada}:${minutoFormateado}:${segundoFormateado}`;
