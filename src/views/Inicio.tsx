@@ -1,8 +1,9 @@
 export const Inicio = () => {
   return (
-    <>
-      <div>Inicio</div>
-      <p>Bienvenido a la página de inicio</p>
-    </>
+    <div className="flex flex-col items-center justify-center h-screen">
+      <h1 className="text-4xl font-bold mb-4">
+        Bienvenido a la Plantilla de React con TypeScript
+      </h1>
+    </div>
   );
 };

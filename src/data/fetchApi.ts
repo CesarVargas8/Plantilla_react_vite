@@ -1,6 +1,4 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-condition */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import axios, { AxiosError } from "axios";
 
 import { URL_API } from "../utils/constants/env";
@@ -39,6 +37,49 @@ const getBaseUrl = (service: ApiServices): string => {
   }
 };
 
+const getValidatedBaseUrl = (service: ApiServices): URL => {
+  const raw = getBaseUrl(service);
+
+  let parsed: URL;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    throw new Error("Configuración inválida: URL base no válida.");
+  }
+
+  if (parsed.protocol !== "https:") {
+    throw new Error("Configuración inválida: solo se permite HTTPS.");
+  }
+
+  return parsed;
+};
+
+const getValidatedEndpointPath = (endpoint: string): string => {
+  const trimmed = endpoint.trim();
+  if (!trimmed) {
+    throw new Error("Endpoint inválido: no puede estar vacío.");
+  }
+
+  const lower = trimmed.toLowerCase();
+  if (
+    lower.startsWith("http://") ||
+    lower.startsWith("https://") ||
+    lower.startsWith("//")
+  ) {
+    throw new Error("Endpoint inválido: no se permiten URLs absolutas.");
+  }
+
+  const normalized = trimmed.replace(/^\/+/, "");
+  const hasTraversal = normalized
+    .split("/")
+    .some((segment) => segment === "." || segment === "..");
+  if (hasTraversal) {
+    throw new Error("Endpoint inválido: contiene segmentos no permitidos.");
+  }
+
+  return normalized;
+};
+
 const buildQueryString = (query?: Record<string, string>): string => {
   if (!query) {
     return "";
@@ -52,14 +93,17 @@ const buildUrl = (
   endpoint: string,
   query?: string,
 ): string => {
-  const base = getBaseUrl(service);
-  const url = [base, endpoint].filter(Boolean).join("/");
+  const base = getValidatedBaseUrl(service);
+  const path = getValidatedEndpointPath(endpoint);
+  const url = new URL(path, `${base.href}/`);
 
   if (!query) {
-    return url;
+    return url.toString();
   }
 
-  return `${url}?${query}`;
+  url.search = query;
+
+  return url.toString();
 };
 
 const extractResponseData = <T>(response: AxiosResponse<T>): T | null => {
@@ -93,14 +137,25 @@ export const fetchApi = async <T>(
   endpoint: string,
   options?: FetchApiOptions,
 ): Promise<ApiResponse<T>> => {
-  const query = buildQueryString(options?.query);
-  const url = buildUrl(service, endpoint, query);
+  let url = "";
+
+  try {
+    const query = buildQueryString(options?.query);
+    url = buildUrl(service, endpoint, query);
+  } catch (error) {
+    return {
+      error: true,
+      message: error instanceof Error ? error.message : "Solicitud inválida.",
+    };
+  }
 
   try {
     const response = await axios<AxiosResponse<T>>(url, {
       method: options?.method ?? "GET",
       headers: options?.headers,
       data: options?.body,
+      timeout: 100000,
+      maxRedirects: 0,
     });
     if (response.data.error) {
       return {
