@@ -1,4 +1,3 @@
-import { Grid } from "@mui/material";
 import { FC, JSX, useEffect, useMemo, useState } from "react";
 
 import { userContext, UserWithToken } from "../contexts/userContext";
@@ -34,8 +33,8 @@ export const TokenValidate: FC<Props> = ({ token, children }) => {
 
   if (loading) {
     return (
-      <Grid
-        sx={{
+      <div
+        style={{
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
@@ -48,7 +47,7 @@ export const TokenValidate: FC<Props> = ({ token, children }) => {
           alt="loading"
           style={{ maxWidth: "35%", maxHeight: "35%" }}
         />
-      </Grid>
+      </div>
     );
   }
 
